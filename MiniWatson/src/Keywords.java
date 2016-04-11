@@ -113,6 +113,14 @@ public class Keywords {
 			 put("hurricane", 3);
 			 put("tornado", 3);
 			 put("earthquake", 3);
+			 put("France", 3);
+			 put("Europe", 3);
+			 put("Asia", 3);
+			 put("North America", 3);
+			 put("Africa", 3);
+			 put("Canada", 3);
+			 put("Pacific", 3);
+			 put("Atlantic", 3);
 		 }
 	};
 
@@ -126,6 +134,9 @@ public class Keywords {
 			put("in", 1);
 			put("travel", 3);
 			put("traveled", 3);
+			put("American", 2);
+			put("Asian", 3);
+			put("European", 3);
 		}
 	};
 	

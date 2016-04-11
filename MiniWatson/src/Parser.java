@@ -15,7 +15,6 @@ import edu.stanford.nlp.util.CoreMap;
  */
 public class Parser {
 	
-	
   public static List<Tree> parse(String text) {
     Properties props = new Properties();
     props.setProperty("annotators", "tokenize, ssplit, pos, lemma, parse");

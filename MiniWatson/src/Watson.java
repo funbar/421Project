@@ -3,34 +3,56 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
-import java.util.Scanner;
+import java.util.ArrayList;
 
 import edu.stanford.nlp.trees.Tree;
 
 public class Watson {
 
 	public static void main(String[] argv) throws IOException {
-		  
 		
+		//check for input parameters
+		if(argv.length != 1){
+			System.out.println("Error: expecting input file");
+			return;
+		}
+		
+		// open and read input file
 		String inputFile = argv[0].toString();
-		//System.out.println("This is inputFile" + inputFile);
-		BufferedReader in = new BufferedReader (new FileReader(inputFile));
-
-	    String text = ""; 
+		BufferedReader in;
+		try{
+			in = new BufferedReader (new FileReader(inputFile));
+		}catch(FileNotFoundException ex){
+			System.out.println(ex.getMessage());
+			return;
+		}
+		ArrayList<String> sents = new ArrayList<String>();
+ 	    String line = "";
+	    String text = "";
+	    while((line = in.readLine()) != null){
+	    	text += " " + line;
+	    	sents.add(line);
+	    }
+	    in.close();
 	    
-	    while((text = in.readLine()) != null){
-
+	    // parse all question in the input file
 	    List<Tree> trees = Parser.parse(text);
+	    
+	    // loop through all parsed questions
+	    int i = 0;
 	    for (Tree tree : trees) {
-	    	final StringBuilder sb = new StringBuilder();
-	    	for ( final Tree t : tree.getLeaves() ) {
-	    	     sb.append(t.toString()).append(" ");
-	    	}
-	    	System.out.println("<QUESTION> " + sb.toString());
+	    	// print original question
+	    	System.out.println("<QUESTION> " + sents.get(i));
+	    	i++;
+	    	
+	    	// initialize variables to represent the probability of each category
 	    	int movie = 0;
 	    	int music = 0;
 	    	int geography = 0;
+	    	
+	    	// loop through all nodes in the parse tree
 	    	for(Tree st : tree){
+	    		// check for noun keywords
 		    	if (st.label().value().equals("NN")) {
 		            //System.out.println("NN " + st.getChild(0).value());
 		            String wd = st.getChild(0).value().toLowerCase();
@@ -44,6 +66,8 @@ public class Watson {
 		            	geography += Keywords.GeoNouns.get(wd);
 		            }
 		        }// end if noun
+		    	
+		    	// check for verb keywords
 		    	if (st.label().value().equals("VB") || st.label().value().equals("VBD") || st.label().value().equals("VBN")) {
 		            //System.out.println("VB " + st.getChild(0).value());
 		            String wd = st.getChild(0).value().toLowerCase();
@@ -57,6 +81,8 @@ public class Watson {
 		            	geography += Keywords.GeoVerbs.get(wd);
 		            }
 		        }// end if verb
+		    	
+		    	// check for adjective keywords
 		    	if(st.label().value().equals("JJR") || st.label().value().equals("JJS") || st.label().value().equals("JJ")){
 		    		//System.out.println("JJR " + st.getChild(0).value());
 		            String wd = st.getChild(0).value().toLowerCase();
@@ -69,26 +95,23 @@ public class Watson {
 		            if(Keywords.GeoAdjectives.containsKey(wd)){
 		            	geography += Keywords.GeoAdjectives.get(wd);
 		            }
-		    	}
+		    	}// end if adjective
 	    	}// end for all nodes
-	    	//System.out.println("Movies: " + movie);
-	    	//System.out.println("Music: " + music);
-	    	//System.out.println("Geography: " + geography);
+
 	    	System.out.print("<CATEGORY> ");
-	    	int max = Math.max(movie, Math.max(music, geography));
-	    	if(max == movie){
-	    		System.out.println("Movies");
+	    	if(movie > music && movie > geography){
+	    		System.out.println("movies");
+	    	}else if(music > movie && music > geography){
+	    		System.out.println("music");
+	    	}else if(geography > movie && geography > music){
+	    		System.out.println("geography");
+	    	}else{
+	    		System.out.println("unknown");
 	    	}
-	    	if(max == music){
-	    		System.out.println("Music");
-	    	}
-	    	if(max == geography){
-	    		System.out.println("Geography");
-	    	}
+	    	
 	    	System.out.println("<PARSETREE>");
 	    	tree.pennPrint();
-	    	}// end for all sentences 
-	    }// end of while
-	    
-	  }
-}
+	    }// end for all sentences 
+	    	
+	  }// end main
+}// end class
