@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -9,13 +10,15 @@ import edu.stanford.nlp.trees.Tree;
 
 public class Watson {
 
-	public static void main(String[] argv) throws IOException {
+	public static void main(String[] argv) throws IOException, SQLException {
 		
 		//check for input parameters
 		if(argv.length != 1){
 			System.out.println("Error: expecting input file");
 			return;
 		}
+		SQLConn conn = new SQLConn();
+		conn.connectToDB();
 		
 		// open and read input file
 		String inputFile = argv[0].toString();
