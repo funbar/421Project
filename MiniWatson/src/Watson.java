@@ -29,6 +29,10 @@ public class Watson {
 		ArrayList<String> sents = new ArrayList<String>();
  	    String line = "";
 	    String text = "";
+	    
+	    String sqlQuery = ""; // changes
+	    String tempString = ""; // stores specific details for the query ie. year "1987"
+
 	    while((line = in.readLine()) != null){
 	    	text += " " + line;
 	    	sents.add(line);
@@ -54,7 +58,7 @@ public class Watson {
 	    	for(Tree st : tree){
 	    		// check for noun keywords
 		    	if (st.label().value().equals("NN")) {
-		            //System.out.println("NN " + st.getChild(0).value());
+
 		            String wd = st.getChild(0).value().toLowerCase();
 		            if(Keywords.MovieNouns.containsKey(wd)){
 		            	movie += Keywords.MovieNouns.get(wd);
@@ -66,6 +70,26 @@ public class Watson {
 		            	geography += Keywords.GeoNouns.get(wd);
 		            }
 		        }// end if noun
+		    	
+		    	// WRB = where
+		    	// NNP = specific artist/pronoun
+		    	if(st.label().value().equals("WRB") || st.label().value().equals("VBZ") || st.label().value().equals("WP") || st.label().value().equals("WDT") || st.label().value().equals("IN")){
+		    		sqlQuery = sqlQuery.concat("select pname from Person p ");
+		    		
+		    	}
+		    	if(st.label().value().equals("NNP")){
+		    		sqlQuery = sqlQuery.concat("inner join Actor a on a.actor_id = ");
+		    		
+		    	}
+		    	if(st.label().value().equals("NN") && st.nodeString().toLowerCase() == "oscar"){
+		    		sqlQuery = sqlQuery.concat("inner join Oscar o on p.id = ");
+		    		
+		    	}
+		    	if(st.label().value().equals("NP") || st.label().value().equals("NN")){
+		    		tempString = st.nodeString();
+		    		System.out.println("This is tempString: " + tempString);
+		    	}
+		    	System.out.println("This is sqlQuery: " + sqlQuery);
 		    	
 		    	// check for verb keywords
 		    	if (st.label().value().equals("VB") || st.label().value().equals("VBD") || st.label().value().equals("VBN")) {
