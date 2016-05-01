@@ -93,7 +93,7 @@ public class Watson {
 		    	query.setSelect("count(*)");
 		    	for(Tree st : qt)
 	    		{
-	    			if(st.label().value().equals("a"))//need a person
+	    			if(st.label().value().equals("a") || st.label().value().equals("an"))//is person A/AN Director/Actor
 	    			{
 	    				query.addTable(Table.Person);
 	    				String name = "\"%";
@@ -101,6 +101,7 @@ public class Watson {
 	    				{
 	    					if(all.value().equals("NNP"))
 	    					{
+	    						if(name.length() > 3) name += " ";
 	    						name += all.getChild(0).label().value();
 	    					}
 	    					if(all.label().value().equals("director"))
@@ -115,11 +116,32 @@ public class Watson {
 	    				query.addWhere("P.name LIKE " + name + "%\"");
 	    				
 	    			}
-	    			if(st.label().value().equals("by"))//need a person
+	    			if(st.label().value().equals("by")) // is movie BY director
 	    			{
 	    				query.addTable(Table.Movie);
 	    				query.addTable(Table.Director);
 	    				query.addTable(Table.Person);
+	    				String movie = "\"%";
+	    				String director = "\"%";
+	    				boolean subj = true;
+	    				for(Tree all : qt)// find persons name and actor or director
+	    				{
+	    					if(all.value().equals("NNP") && subj)
+	    					{
+	    						if(movie.length() > 3) movie += " ";
+	    						movie += all.getChild(0).label().value();
+	    					}
+	    					else if(all.value().equals("NNP") && !subj)
+	    					{
+	    						if(director.length() > 3) director += " ";
+	    						director += all.getChild(0).label().value();
+	    					}
+	    					else if(all.value().equals("by"))
+	    					{
+	    						subj = false;
+	    					}
+	    				}
+	    				query.addWhere("P.name LIKE " + director + "%\" AND M.name LIKE " + movie + "%\"");
 	    			}
 	    		
 	    		}
