@@ -74,19 +74,56 @@ public class Watson {
 	    int i = 0;
 	    for (Tree tree : trees) {
 	    	SQLQuery query = new SQLQuery();
-	    	query.addTable(Table.Actor);
 	    	// print original question
 	    	System.out.println("<QUESTION> " + sents.get(i));
 	    	i++;
 	    	
 	    	//System.out.println("child: " + tree.getChild(0).value());
-	    	if(tree.getChild(0).value().equals("SBARQ"))
+	    	Tree qt;
+	    	if((qt = tree.getChild(0)).value().equals("SBARQ"))
 	    	{
 	    		System.out.println("wh question");
+	    		
+	    		
+	    		
 	    	}
 	    	else
 	    	{
 	    		System.out.println("is question");
+		    	query.setSelect("count(*)");
+		    	for(Tree st : qt)
+	    		{
+	    			if(st.label().value().equals("a"))//need a person
+	    			{
+	    				query.addTable(Table.Person);
+	    				String name = "\"%";
+	    				for(Tree all : qt)// find persons name and actor or director
+	    				{
+	    					if(all.value().equals("NNP"))
+	    					{
+	    						name += all.getChild(0).label().value();
+	    					}
+	    					if(all.label().value().equals("director"))
+	    					{
+	    						query.addTable(Table.Director);
+	    					}
+	    					if(all.label().value().equals("actor"))
+	    					{
+	    						query.addTable(Table.Actor);
+	    					}
+	    				}
+	    				query.addWhere("P.name LIKE " + name + "%\"");
+	    				
+	    			}
+	    			if(st.label().value().equals("by"))//need a person
+	    			{
+	    				query.addTable(Table.Movie);
+	    				query.addTable(Table.Director);
+	    				query.addTable(Table.Person);
+	    			}
+	    		
+	    		}
+		    	
 	    	}
 
 	    	
@@ -102,6 +139,9 @@ public class Watson {
 	    		System.out.println("unknown");
 	    	}
 	    	*/
+	    	System.out.println("<SQL Statement>");
+	    	System.out.println(query.getQuery());
+	    	
 	    	System.out.println("<PARSETREE>");
 	    	tree.pennPrint();
 	    }// end for all sentences 
