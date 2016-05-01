@@ -19,6 +19,8 @@ public class SQLConn {
 	  }
 
 	java.sql.Connection connectToDB() throws java.sql.SQLException {
+	    System.out.println("*** reached ***");
+
 	    return java.sql.DriverManager.getConnection(strConn , DBusername, DBpassword);
 	}
 
