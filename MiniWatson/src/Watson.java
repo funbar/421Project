@@ -126,7 +126,7 @@ public class Watson {
 	 */
 	private static String sqSem(Tree sq, SQLQuery query)
 	{
-		query.setSelect("count(*)"); // semantic attachment for all "is questions"
+		query.setSelect("count(*)"); // semantic attachment for all SQ nodes
     	List<Tree> sqrule = sq.getChildrenAsList();
     	/**
     	System.out.println(qrule.size());
@@ -135,7 +135,7 @@ public class Watson {
     		System.out.println(child.nodeString());
     	}*/
     	if((sqrule.size() == 4)&&sqrule.get(1).nodeString().equals("NP")&&sqrule.get(2).nodeString().equals("VP"))
-    	{// SQ -> VBD NP VP .
+    	{// SQ -> VB_ NP VP .
     		System.out.println("SQ -> VBD NP VP .");
     		Tree np = sqrule.get(1);
     		String npsem = npSem(np, query);
@@ -144,12 +144,21 @@ public class Watson {
     		return "";
     	}
     	if((sqrule.size()==4)&&sqrule.get(1).nodeString().equals("NP")&&sqrule.get(2).nodeString().equals("NP"))
-    	{// SQ -> VBZ NP NP
+    	{// SQ -> VB_ NP NP
     		System.out.println("SQ -> VBZ NP NP");
     		Tree np1 = sqrule.get(1);
     		String np1sem = npSem(np1, query);
     		Tree np2 = sqrule.get(2);
     		String np2sem = npSem(np2, query);
+    		return "";
+    	}
+    	if((sqrule.size()==4)&&sqrule.get(1).nodeString().equals("NP")&&sqrule.get(2).nodeString().equals("PP"))
+    	{// SQ -> VB_ NP PP
+    		System.out.println("SQ -> VBD NP PP");
+    		Tree np = sqrule.get(1);
+    		String np1sem = npSem(np, query);
+    		Tree pp = sqrule.get(2);
+    		String np2sem = ppSem(pp, query);
     		return "";
     	}
     	return "";
@@ -179,6 +188,14 @@ public class Watson {
 			{
 				ppSem(l, query);
 			}
+			if(l.nodeString().contains("JJ"))
+			{
+				jjSem(l, query);
+			}
+			if(l.nodeString().equals("CD"))
+			{
+				query.addWhere("O.year = " + l.getChild(0).nodeString());
+			}
 		}
 		return "";
 	}
@@ -201,6 +218,10 @@ public class Watson {
 		else if(isMovie(pn))
 		{
 			query.addWhere("M.name LIKE \"%" + pn + "%\"");
+		}
+		else if(isCountry(pn))
+		{
+			query.addWhere("P.pob LIKE \"%" + pn + "%\"");
 		}
 		return "";
 	}
@@ -239,8 +260,8 @@ public class Watson {
 	private static String vpSem(Tree vp, SQLQuery query)
 	{
 		List<Tree> vprule = vp.getChildrenAsList();
-		if((vprule.size() == 2) && vprule.get(0).nodeString().equals("VB") && vprule.get(1).nodeString().equals("NP"))
-		{
+		if((vprule.size() == 2) &&vprule.get(0).nodeString().contains("VB") && vprule.get(1).nodeString().equals("NP"))
+		{// VP -> VB NP
 			System.out.println("VP -> VB NP");
 			Tree vb = vprule.get(0);
 			String vbsem = vbSem(vb, query);
@@ -250,9 +271,9 @@ public class Watson {
 			query.lambdaWhere(npsem);
 			
 		}
-		if((vprule.size() == 2) && (vprule.get(0).nodeString().equals("VB")) && (vprule.get(1).nodeString().equals("PP")))
-		{
-			System.out.println("VP -> VB NP");
+		if((vprule.size() == 2) && (vprule.get(0).nodeString().contains("VB")) && (vprule.get(1).nodeString().equals("PP")))
+		{// VP -> VB or VBN PP
+			System.out.println("VP -> VB_ PP");
 			Tree vb = vprule.get(0);
 			String vbsem = vbSem(vb, query);
 			Tree pp = vprule.get(1);
@@ -276,14 +297,23 @@ public class Watson {
 		//System.out.println("reached");
 		List<Tree> pprule = pp.getChildrenAsList();
 		//System.out.println("pp child 1: " + pprule.get(0).nodeString());
-		if((pprule.size() == 2) && (pprule.get(0).nodeString().equals("IN")) && (pprule.get(1).nodeString().equals("NP")))
+		if((pprule.size() == 2)&&pprule.get(0).nodeString().equals("IN")&&pprule.get(1).nodeString().equals("NP"))
 		{// PP -> IN NP
 			System.out.println("PP -> IN NP");
 			Tree in = pprule.get(0);
-			String inSem = inSem(in, query);
+			String insem = inSem(in, query);
 			Tree np = pprule.get(1);
 			String npsem = npSem(np, query);
-			return npsem;
+			return "";
+		}
+		if((pprule.size() == 2)&&pprule.get(0).nodeString().equals("NP")&&pprule.get(1).nodeString().equals("PP"))
+		{// PP -> NP PP
+			System.out.println("PP -> NP PP");
+			Tree np = pprule.get(0);
+			String npsem = npSem(np, query);
+			Tree pp1 = pprule.get(1);
+			String ppsem = ppSem(pp1, query);
+			return "";
 		}
 		return "";
 	}
@@ -306,7 +336,7 @@ public class Watson {
 	/**
 	 * VB semantic attachments
 	 * 
-	 * @param vb - a VB tree node
+	 * @param vb - a VB_ tree node
 	 * @param query - our query building object
 	 * @return
 	 */
@@ -316,7 +346,7 @@ public class Watson {
 		//System.out.println("verb: " + verb);
 		
 		if(verb.equals("direct"))
-		{
+		{// VB -> direct
 			query.setFrom("FROM Person P");
 			query.setFrom("INNER JOIN Director D on P.id = D.director_id");
 			query.setFrom("INNER JOIN Movie M on D.movie_id = M.id");
@@ -324,17 +354,33 @@ public class Watson {
 			return "direct";
 		}
 		if(verb.equals("act") || verb.equals("star"))
-		{
+		{// VB -> act | star
 			query.setFrom("FROM Person P");
 			query.setFrom("INNER JOIN Actor A on P.id = A.actor_id");
 			query.setFrom("INNER JOIN Movie M on A.movie_id = M.id");
 			//query.setWhere("M.name LIKE \"%LAMBDA%\" AND P.name LIKE \"%LAMBDA%\"");
 			return "star";
 		}
+		if(verb.equals("born"))
+		{
+			query.setFrom("FROM Person P");
+			return "born";
+		}
 		
 		return "";
 	}
 	
+	private static String jjSem(Tree jj, SQLQuery query)
+	{
+		String adj = jj.getChild(0).nodeString();
+		if(adj.equals("best"))
+		{
+			query.setFrom("FROM Oscar O");
+			query.setFrom("INNER JOIN Person P on O.person_id = P.id");
+			query.setFrom("INNER JOIN Movie M on O.movie_id = M.id");
+		}
+		return "";
+	}
 	
 	/**
 	 * Lookup a proper noun in the movie table to see if it is a part
@@ -385,6 +431,42 @@ public class Watson {
 		{
 			Statement stmt = c.createStatement();
 			String query = "SELECT COUNT(*) FROM Person WHERE name LIKE \"%" + name + "%\"";
+			ResultSet rs = stmt.executeQuery(query);
+		    if(rs.next())
+		    {
+		    	if(rs.getInt(1) >= 1)
+		    	{
+		    		//System.out.println(name + " is person");
+		    		return true;
+		    	}
+		    	else
+		    		return false;
+		    }
+		    else
+		    	return false;
+		}
+	    catch(Exception e )
+		{
+	    	System.out.println("SQL error in person lookup");
+	    	return false;
+	    	//System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+		    //System.exit(0);
+		}
+	}
+	
+	/**
+	 * Lookup a proper noun in the person table to see if it is a part
+	 * of a persons name
+	 * 
+	 * @param name - a proper noun
+	 * @return true if name exists in our person table, false otherwise
+	 */
+	private static boolean isCountry(String name)
+	{
+		try
+		{
+			Statement stmt = c.createStatement();
+			String query = "SELECT COUNT(*) FROM Person WHERE pob LIKE \"%" + name + "%\"";
 			ResultSet rs = stmt.executeQuery(query);
 		    if(rs.next())
 		    {
