@@ -205,7 +205,7 @@ public class SQLQuery
 		}
 	}
 	
-	public String getQuery()
+	public String toString()
 	{	
 		return select + from + where + ";";
 	}
@@ -217,6 +217,6 @@ public class SQLQuery
 		q.addTable(Table.Director);
 		q.setSelect("count(*)");
 		q.addWhere("P.name like\"%kubrick%\"");
-		System.out.println(q.getQuery());
+		System.out.println(q.toString());
 	}
 }
