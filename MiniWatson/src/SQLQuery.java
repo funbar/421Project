@@ -17,6 +17,49 @@ public class SQLQuery
 		where = "";
 	}
 	
+	
+	
+	public String getFrom() {
+		return from;
+	}
+
+
+
+	public void setFrom(String from) {
+		this.from += from + "\n";
+	}
+
+
+
+	public String getWhere() {
+		return where;
+	}
+
+
+
+	public void setWhere(String where) {
+		if(this.where.isEmpty())
+		{
+			this.where += "WHERE " + where;
+		}
+		else
+		{
+			this.where += where;
+		}
+	}
+	
+	public void lambdaWhere(String var){
+		where = where.replaceFirst("LAMBDA", var);
+	}
+
+
+
+	public String getSelect() {
+		return select;
+	}
+
+
+
 	public void addTable(Table t)
 	{
 		if(tables.isEmpty())

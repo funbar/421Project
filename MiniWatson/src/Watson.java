@@ -2,52 +2,38 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+
+import java.sql.SQLException;
+import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
-
-import org.sqlite.*;
-
 
 import java.util.ArrayList;
-
+import java.util.List;
 import edu.stanford.nlp.trees.Tree;
 
 public class Watson {
 
-	public static void main(String[] argv) throws IOException, SQLException {
+	private static java.sql.Connection c = null;
+	
+	/**
+	 * main class, accepts input, opens database, calls parser, semantic representation,
+	 * runs the SQL commands, and displays output 
+	 * 
+	 * @param argv - input parameters
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public static void main(String[] argv) throws IOException
+	{
 		
 		//check for input parameters
 		if(argv.length != 1){
 			System.out.println("Error: expecting input file");
 			return;
 		}
-		/**
-		java.sql.Connection c = null;
-	    try {
-	      Class.forName("org.sqlite.JDBC");
-	      c = DriverManager.getConnection("jdbc:sqlite:oscar-movie_imdb.sqlite");
-	    } catch ( Exception e ) {
-	      System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-	      System.exit(0);
-	    }
-	    
-	    
-	    System.out.println("Opened database successfully");
-	    Statement stmt = c.createStatement();
-	      ResultSet rs = stmt.executeQuery( "SELECT * FROM Movie WHERE name LIKE \"Shrek\";" );
-	      while ( rs.next() ) {
-	         int id = rs.getInt("id");
-	         String  name = rs.getString("name");
-	         int year  = rs.getInt("year");
-	         System.out.println( "ID = " + id );
-	         System.out.println( "NAME = " + name );
-	         System.out.println( "year = " + year );
-	         System.out.println();
-	      }
-		*/
+
 		// open and read input file
 		String inputFile = argv[0].toString();
 		BufferedReader in;
@@ -67,100 +53,27 @@ public class Watson {
 	    }
 	    in.close();
 	    
+	    try {
+	      Class.forName("org.sqlite.JDBC");
+	      c = DriverManager.getConnection("jdbc:sqlite:oscar-movie_imdb.sqlite");
+	    } catch ( Exception e ) {
+	      System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+	      System.exit(0);
+	    }
+	    
 	    // parse all question in the input file
 	    List<Tree> trees = Parser.parse(text);
 	    
 	    // loop through all parsed questions
 	    int i = 0;
 	    for (Tree tree : trees) {
-	    	SQLQuery query = new SQLQuery();
 	    	// print original question
 	    	System.out.println("<QUESTION> " + sents.get(i));
 	    	i++;
 	    	
-	    	//System.out.println("child: " + tree.getChild(0).value());
-	    	Tree qt;
-	    	if((qt = tree.getChild(0)).value().equals("SBARQ"))
-	    	{
-	    		System.out.println("wh question");
-	    		
-	    		
-	    		
-	    	}
-	    	else
-	    	{
-	    		System.out.println("is question");
-		    	query.setSelect("count(*)");
-		    	for(Tree st : qt)
-	    		{
-	    			if(st.label().value().equals("a") || st.label().value().equals("an"))//is person A/AN Director/Actor
-	    			{
-	    				query.addTable(Table.Person);
-	    				String name = "\"%";
-	    				for(Tree all : qt)// find persons name and actor or director
-	    				{
-	    					if(all.value().equals("NNP"))
-	    					{
-	    						if(name.length() > 3) name += " ";
-	    						name += all.getChild(0).label().value();
-	    					}
-	    					if(all.label().value().equals("director"))
-	    					{
-	    						query.addTable(Table.Director);
-	    					}
-	    					if(all.label().value().equals("actor"))
-	    					{
-	    						query.addTable(Table.Actor);
-	    					}
-	    				}
-	    				query.addWhere("P.name LIKE " + name + "%\"");
-	    				
-	    			}
-	    			if(st.label().value().equals("by")) // is movie BY director
-	    			{
-	    				query.addTable(Table.Movie);
-	    				query.addTable(Table.Director);
-	    				query.addTable(Table.Person);
-	    				String movie = "\"%";
-	    				String director = "\"%";
-	    				boolean subj = true;
-	    				for(Tree all : qt)// find persons name and actor or director
-	    				{
-	    					if(all.value().equals("NNP") && subj)
-	    					{
-	    						if(movie.length() > 3) movie += " ";
-	    						movie += all.getChild(0).label().value();
-	    					}
-	    					else if(all.value().equals("NNP") && !subj)
-	    					{
-	    						if(director.length() > 3) director += " ";
-	    						director += all.getChild(0).label().value();
-	    					}
-	    					else if(all.value().equals("by"))
-	    					{
-	    						subj = false;
-	    					}
-	    				}
-	    				query.addWhere("P.name LIKE " + director + "%\" AND M.name LIKE " + movie + "%\"");
-	    			}
-	    		
-	    		}
-		    	
-	    	}
-
+	    	SQLQuery query = getQuery(tree);
 	    	
-	    	/**
-	    	System.out.print("<CATEGORY> ");
-	    	if(movie > music && movie > geography){
-	    		System.out.println("movies");
-	    	}else if(music > movie && music > geography){
-	    		System.out.println("music");
-	    	}else if(geography > movie && geography > music){
-	    		System.out.println("geography");
-	    	}else{
-	    		System.out.println("unknown");
-	    	}
-	    	*/
+	    	
 	    	System.out.println("<SQL Statement>");
 	    	System.out.println(query.getQuery());
 	    	
@@ -168,5 +81,261 @@ public class Watson {
 	    	tree.pennPrint();
 	    }// end for all sentences 
 	    
-	  }// end main
+	}// end main
+	
+	/**
+	 * Start semantic attachments and lambda reductions at ROOT of each question
+	 * ROOT -> SBARQ for wh questions and
+	 * ROOT -> SQ for yes/no questions
+	 * 
+	 * @param sent - ROOT node for a questions parse tree
+	 * @return the SQL query string representation of the question
+	 */
+	private static SQLQuery getQuery(Tree sent)
+	{
+		SQLQuery query = new SQLQuery();
+    	Tree qt;
+    	if((qt = sent.getChild(0)).value().equals("SBARQ"))
+    	{// ROOT -> SBARQ for all wh questions
+    		System.out.println("wh question: ");
+    		System.out.println(qt.getLeaves().get(0));
+    		
+    		
+    	}
+    	else if((qt = sent.getChild(0)).value().equals("SQ"))// all yes/no questions
+    	{// ROOT -> SQ for all yes/no questions
+    		System.out.println("is question: " + qt.getLeaves().get(0));
+	    	query.setSelect("count(*)"); // semantic attachment for all "is questions"
+	    	List<Tree> qrule = qt.getChildrenAsList();
+	    	/**
+	    	System.out.println(qrule.size());
+	    	for(Tree child : qrule)
+	    	{
+	    		System.out.println(child.nodeString());
+	    	}*/
+	    	if((qrule.size() == 4)&&(qrule.get(1).nodeString().equals("NP"))&&(qrule.get(2).nodeString().equals("VP")))
+	    	{// SQ -> VBD NP VP .
+	    		System.out.println("SQ -> VBD NP VP .");
+	    		Tree np = qrule.get(1);
+	    		String npsem = npSem(np, query);
+	    		Tree vp = qrule.get(2);
+	    		String vpsem = vpSem(vp, query);
+	    		query.lambdaWhere(npsem);
+	    	}
+	    	
+	    	
+    	}
+
+		return query;
+	}// end getQuery
+	
+	
+	/**
+	 * NP semantic attachments
+	 * 
+	 * @param np - a NP tree node
+	 * @param query - our query building object
+	 * @return
+	 */
+	private static String npSem(Tree np, SQLQuery query)
+	{
+		
+		for(Tree l : np)
+		{
+			if(l.nodeString().equals("NNP"))
+			{
+				nnpSem(l.getChild(0), query);
+			}
+		}
+		return "";
+	}
+	
+	/**
+	 * NNP semantic attachments
+	 * 
+	 * @param nnp - a NNP tree node
+	 * @param query - our query building object
+	 * @return
+	 */
+	private static String nnpSem(Tree nnp, SQLQuery query)
+	{
+		String pn = nnp.nodeString();
+		//System.out.println("Found proper noun: " + pn);
+		if(isPerson(pn))
+		{
+			query.addWhere("P.name LIKE \"%" + pn + "%\"");
+		}
+		else if(isMovie(pn))
+		{
+			query.addWhere("M.name LIKE \"%" + pn + "%\"");
+		}
+		return "";
+	}
+	
+	/**
+	 * Lookup a proper noun in the movie table to see if it is a part
+	 * of a movie title
+	 * 
+	 * @param name - a proper noun
+	 * @return true if name exists in our movie table, false otherwise
+	 */
+	private static boolean isMovie(String name)
+	{
+		try
+		{
+			Statement stmt = c.createStatement();
+			String query = "SELECT COUNT(*) FROM Movie WHERE name LIKE \"%" + name + "%\"";
+		    ResultSet rs = stmt.executeQuery(query);
+		    if(rs.next())
+		    {
+		    	if(rs.getInt(1) >= 1)
+		    	{
+		    		//System.out.println(name + " is movie");
+		    		return true;
+		    	}
+		    	else
+		    	{
+		    		return false;
+		    	}
+		    }
+		    else
+		    {
+		    	return false;
+		    }
+		}
+	    catch(Exception e )
+		{
+	    	System.out.println("SQL error in movie lookup");
+	    	return false;
+	    	//System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+		    //System.exit(0);
+		}
+		
+	}
+	
+	/**
+	 * Lookup a proper noun in the person table to see if it is a part
+	 * of a persons name
+	 * 
+	 * @param name - a proper noun
+	 * @return true if name exists in our person table, false otherwise
+	 */
+	private static boolean isPerson(String name)
+	{
+		try
+		{
+			Statement stmt = c.createStatement();
+			String query = "SELECT COUNT(*) FROM Person WHERE name LIKE \"%" + name + "%\"";
+			ResultSet rs = stmt.executeQuery(query);
+		    if(rs.next())
+		    {
+		    	if(rs.getInt(1) >= 1)
+		    	{
+		    		//System.out.println(name + " is person");
+		    		return true;
+		    	}
+		    	else
+		    		return false;
+		    }
+		    else
+		    	return false;
+		}
+	    catch(Exception e )
+		{
+	    	System.out.println("SQL error in person lookup");
+	    	return false;
+	    	//System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+		    //System.exit(0);
+		}
+	}
+	
+	
+	/**
+	 * VP semantic attachments 
+	 * 
+	 * @param vp - a VP tree node
+	 * @param query -  our query building object
+	 * @return
+	 */
+	private static String vpSem(Tree vp, SQLQuery query)
+	{
+		List<Tree> vprule = vp.getChildrenAsList();
+		if((vprule.size() == 2) && vprule.get(0).nodeString().equals("VB") && vprule.get(1).nodeString().equals("NP"))
+		{
+			System.out.println("VP -> VB NP");
+			Tree vb = vprule.get(0);
+			String vbsem = vbSem(vb, query);
+			Tree np = vprule.get(1);
+			String npsem = npSem(np,query);
+			System.out.println("npsem: " + npsem);
+			query.lambdaWhere(npsem);
+			
+		}
+		if((vprule.size() == 2) && (vprule.get(0).nodeString().equals("VB")) && (vprule.get(1).nodeString().equals("PP")))
+		{
+			System.out.println("VP -> VB NP");
+			Tree vb = vprule.get(0);
+			String vbsem = vbSem(vb, query);
+			Tree pp = vprule.get(1);
+			String npsem = ppSem(pp,query);
+			//System.out.println("npsem: " + npsem);
+			//query.lambdaWhere(npsem);
+		}
+		
+		return "";
+	}
+	
+	/**
+	 * PP semantic attachments 
+	 * 
+	 * @param pp - a PP tree node
+	 * @param query - our query building object
+	 * @return
+	 */
+	private static String ppSem(Tree pp, SQLQuery query)
+	{
+		List<Tree> pprule = pp.getChildrenAsList();
+		//System.out.println("pp child 1: " + pprule.get(0).nodeString());
+		if((pprule.size() == 2) && (pprule.get(0).nodeString().equals("IN")) && (pprule.get(1).nodeString().equals("NP")))
+		{
+			System.out.println("PP -> IN NP");
+			Tree np = pprule.get(1);
+			String npsem = npSem(np, query);
+			System.out.println("pp->np sem: " + npsem);
+			return npsem;
+		}
+		return "";
+	}
+	
+	/**
+	 * VB semantic attachments
+	 * 
+	 * @param vb - a VB tree node
+	 * @param query - our query building object
+	 * @return
+	 */
+	private static String vbSem(Tree vb, SQLQuery query)
+	{
+		String verb = vb.getChild(0).nodeString();
+		//System.out.println("verb: " + verb);
+		
+		if(verb.equals("direct"))
+		{
+			query.setFrom("FROM Person P");
+			query.setFrom("INNER JOIN Director D on P.id = D.director_id");
+			query.setFrom("INNER JOIN Movie M on D.movie_id = M.id");
+			//query.setWhere("M.name LIKE \"%LAMBDA%\" AND P.name LIKE \"%LAMBDA%\"");
+			return "direct";
+		}
+		if(verb.equals("act") || verb.equals("star"))
+		{
+			query.setFrom("FROM Person P");
+			query.setFrom("INNER JOIN Actor A on P.id = A.actor_id");
+			query.setFrom("INNER JOIN Movie M on A.movie_id = M.id");
+			//query.setWhere("M.name LIKE \"%LAMBDA%\" AND P.name LIKE \"%LAMBDA%\"");
+			return "star";
+		}
+		
+		return "";
+	}
 }// end class
