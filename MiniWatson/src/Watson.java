@@ -177,7 +177,7 @@ public class Watson {
 			}
 			if(l.nodeString().equals("PP"))
 			{
-				ppSem(l.getChild(0), query);
+				ppSem(l, query);
 			}
 		}
 		return "";
@@ -205,7 +205,13 @@ public class Watson {
 		return "";
 	}
 	
-	
+	/**
+	 * NN semantic attachments
+	 * 
+	 * @param nn
+	 * @param query
+	 * @return
+	 */
 	private static String nnSem(Tree nn, SQLQuery query)
 	{
 		String noun = nn.nodeString();
@@ -267,16 +273,33 @@ public class Watson {
 	 */
 	private static String ppSem(Tree pp, SQLQuery query)
 	{
+		//System.out.println("reached");
 		List<Tree> pprule = pp.getChildrenAsList();
 		//System.out.println("pp child 1: " + pprule.get(0).nodeString());
 		if((pprule.size() == 2) && (pprule.get(0).nodeString().equals("IN")) && (pprule.get(1).nodeString().equals("NP")))
 		{// PP -> IN NP
 			System.out.println("PP -> IN NP");
+			Tree in = pprule.get(0);
+			String inSem = inSem(in, query);
 			Tree np = pprule.get(1);
 			String npsem = npSem(np, query);
-			System.out.println("pp->np sem: " + npsem);
 			return npsem;
 		}
+		return "";
+	}
+	
+	public static String inSem(Tree in, SQLQuery query)
+	{
+		String prep = in.getChild(0).nodeString();
+		System.out.println("Prep: "+ prep);
+		if(prep.equals("by"))
+		{// IN -> by
+			System.out.println("IN -> by");
+			query.setFrom("FROM Person P");
+			query.setFrom("INNER JOIN Director D on P.id = D.director_id");
+			query.setFrom("INNER JOIN Movie M on D.movie_id = M.id");
+		}
+		
 		return "";
 	}
 	
